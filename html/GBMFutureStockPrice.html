@@ -1,0 +1,289 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Calculating future prices of a stock based on the geometric brownian motion model</title><meta name="generator" content="MATLAB 9.9"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2020-12-23"><meta name="DC.source" content="GBMFutureStockPrice.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Calculating future prices of a stock based on the geometric brownian motion model</h1><!--introduction--><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Read data</a></li><li><a href="#2">Clear temporary variables</a></li><li><a href="#3">Calculate Returns</a></li><li><a href="#5">Calculating factors of GBM</a></li><li><a href="#6">Calculate the future prices</a></li><li><a href="#7">Create factors for GBM</a></li><li><a href="#12">Plot the paths</a></li></ul></div><h2 id="1">Read data</h2><p>Set up the Import Options and import the data</p><pre class="codeinput">opts = delimitedTextImportOptions(<span class="string">"NumVariables"</span>, 7);
+
+<span class="comment">% Specify range and delimiter</span>
+opts.DataLines = [2, Inf];
+opts.Delimiter = <span class="string">","</span>;
+
+<span class="comment">% Specify column names and types</span>
+opts.VariableNames = [<span class="string">"Date"</span>, <span class="string">"Var2"</span>, <span class="string">"Var3"</span>, <span class="string">"Var4"</span>, <span class="string">"Var5"</span>, <span class="string">"AdjClose"</span>, <span class="string">"Var7"</span>];
+opts.SelectedVariableNames = [<span class="string">"Date"</span>, <span class="string">"AdjClose"</span>];
+opts.VariableTypes = [<span class="string">"datetime"</span>, <span class="string">"string"</span>, <span class="string">"string"</span>, <span class="string">"string"</span>, <span class="string">"string"</span>, <span class="string">"double"</span>, <span class="string">"string"</span>];
+
+<span class="comment">% Specify file level properties</span>
+opts.ExtraColumnsRule = <span class="string">"ignore"</span>;
+opts.EmptyLineRule = <span class="string">"read"</span>;
+
+<span class="comment">% Specify variable properties</span>
+opts = setvaropts(opts, [<span class="string">"Var2"</span>, <span class="string">"Var3"</span>, <span class="string">"Var4"</span>, <span class="string">"Var5"</span>, <span class="string">"Var7"</span>], <span class="string">"WhitespaceRule"</span>, <span class="string">"preserve"</span>);
+opts = setvaropts(opts, [<span class="string">"Var2"</span>, <span class="string">"Var3"</span>, <span class="string">"Var4"</span>, <span class="string">"Var5"</span>, <span class="string">"Var7"</span>], <span class="string">"EmptyFieldRule"</span>, <span class="string">"auto"</span>);
+opts = setvaropts(opts, <span class="string">"Date"</span>, <span class="string">"InputFormat"</span>, <span class="string">"yyyy-MM-dd"</span>);
+
+<span class="comment">% Import the data</span>
+SPY = readtable(<span class="string">"C:\Users\kushk\OneDrive\Documents\FinancialEngineering\SPY.csv"</span>, opts);
+</pre><h2 id="2">Clear temporary variables</h2><pre class="codeinput">clear <span class="string">opts</span>
+</pre><h2 id="3">Calculate Returns</h2><p>Using GBM formula, we can predict multiple paths of the future stock prices of SPY. The formula for GBM is</p><p><img src="GBMFutureStockPrice_eq14207973384861215173.png" alt="$S(T + deltaT) = S(T)*exp((mu-sigma^2/2)*deltaT + sigma*epsilon*sqrt(deltaT))$" style="width:571px;height:16px;"> ;</p><pre class="codeinput">head(SPY);
+data = SPY(:,2);
+data = data{:,:};      <span class="comment">%Converting table to array</span>
+logPrices = log(data);
+
+<span class="comment">% Calculate SPY returns</span>
+returns = diff(logPrices);
+</pre><h2 id="5">Calculating factors of GBM</h2><p>Calculate the descriptive statistics</p><pre class="codeinput"><span class="comment">% Compute mu</span>
+mu = mean(returns);
+
+<span class="comment">% compute sigma</span>
+sigma = std(returns);
+
+<span class="comment">% Assign deltaT = 1</span>
+deltaT = 1;
+</pre><h2 id="6">Calculate the future prices</h2><p>Now create a vector of normally distributed numbers for epsilon. Simulating 100 future paths of stock price for SPY.</p><pre class="codeinput">epsilon = randn(22,100);
+</pre><h2 id="7">Create factors for GBM</h2><pre class="codeinput">factors = exp((mu-sigma^2/2)*deltaT + sigma*epsilon*sqrt(deltaT));
+</pre><p>To predict the future values of the stock price, first we need to extract the price of SPY on the last trading day and store the results.</p><pre class="codeinput">S0 = data(end,1);
+</pre><p>Create a row vector of size 1 by 100 such that each element of the vector has the value equal to the last recorded stock price S0. Note:If you change epsilon to 200, you need to change this vector too.</p><pre class="codeinput">lastPriceVector = ones(1,100)*S0;
+</pre><p>Now concatenate lastPriceVector and factors</p><pre class="codeinput">factors2 = [lastPriceVector;factors];
+</pre><p>Functions like cumprod are applied to each column of the input matrix Use the function cumprod with factors 2 as the input to compute the prices at future time instants</p><pre class="codeinput">paths = cumprod(factors2);
+</pre><h2 id="12">Plot the paths</h2><p>Plot paths to see the predicted prices of SPY</p><pre class="codeinput">plot(paths)
+xlabel(<span class="string">"Time"</span>)
+ylabel(<span class="string">"Prices"</span>)
+title(<span class="string">"Simulated Future Paths of SPY"</span>)
+</pre><img vspace="5" hspace="5" src="GBMFutureStockPrice_01.png" alt=""> <p>Combine stock price and predicted path together</p><pre class="codeinput">plot(data)
+xlabel(<span class="string">"Time"</span>)
+ylabel(<span class="string">"Stock Price"</span>)
+title(<span class="string">"Stock Price over last 128 Days"</span>)
+hold <span class="string">on</span>
+</pre><img vspace="5" hspace="5" src="GBMFutureStockPrice_02.png" alt=""> <p>The future prices should have x-data that represents the future time points. Since the historical data contains 128 records, the future value should be plotted against the index(x-data)</p><pre class="codeinput">plot(125:147,paths)
+xlabel(<span class="string">"Time"</span>)
+ylabel(<span class="string">"Stock Price"</span>)
+title(<span class="string">"Historical Stock Prices &amp; Simulated Prices"</span>)
+hold <span class="string">off</span>
+</pre><img vspace="5" hspace="5" src="GBMFutureStockPrice_03.png" alt=""> <p>Zoom in the graph by changing the axis limit</p><pre class="codeinput">xlim([100 140])
+</pre><img vspace="5" hspace="5" src="GBMFutureStockPrice_04.png" alt=""> <p>Extract all rows and columns from paths</p><pre class="codeinput">finalPrices = paths(end,:);
+</pre><p>Calculate possible returns</p><pre class="codeinput">possibleReturns = log(finalPrices) - log(S0);
+</pre><p>Plot a histogram of the possible returns with 20 bins.</p><pre class="codeinput">histogram(possibleReturns,20)
+xlabel(<span class="string">"Standard Deviation"</span>)
+ylabel(<span class="string">"Possible Returns"</span>)
+title(<span class="string">"Possible Returns Histogram"</span>)
+</pre><img vspace="5" hspace="5" src="GBMFutureStockPrice_05.png" alt=""> <p>Calculate the VaR</p><pre class="codeinput">var5 = prctile(possibleReturns,5)
+hold <span class="string">on</span>
+plot([var5 var5],[0 20], <span class="string">'r'</span>)
+title(<span class="string">"Value at Risk at 5%"</span>)
+hold <span class="string">off</span>
+</pre><pre class="codeoutput">
+var5 =
+
+   -0.0503
+
+</pre><img vspace="5" hspace="5" src="GBMFutureStockPrice_06.png" alt=""> <p>Apply it to your own dataset and extract insights.</p><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2020b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Calculating future prices of a stock based on the geometric brownian motion model
+
+%% Read data
+% Set up the Import Options and import the data
+opts = delimitedTextImportOptions("NumVariables", 7);
+
+% Specify range and delimiter
+opts.DataLines = [2, Inf];
+opts.Delimiter = ",";
+
+% Specify column names and types
+opts.VariableNames = ["Date", "Var2", "Var3", "Var4", "Var5", "AdjClose", "Var7"];
+opts.SelectedVariableNames = ["Date", "AdjClose"];
+opts.VariableTypes = ["datetime", "string", "string", "string", "string", "double", "string"];
+
+% Specify file level properties
+opts.ExtraColumnsRule = "ignore";
+opts.EmptyLineRule = "read";
+
+% Specify variable properties
+opts = setvaropts(opts, ["Var2", "Var3", "Var4", "Var5", "Var7"], "WhitespaceRule", "preserve");
+opts = setvaropts(opts, ["Var2", "Var3", "Var4", "Var5", "Var7"], "EmptyFieldRule", "auto");
+opts = setvaropts(opts, "Date", "InputFormat", "yyyy-MM-dd");
+
+% Import the data
+SPY = readtable("C:\Users\kushk\OneDrive\Documents\FinancialEngineering\SPY.csv", opts);
+
+%% Clear temporary variables
+clear opts
+
+%% Calculate Returns
+% Using GBM formula, we can predict multiple paths of the future stock
+% prices of SPY. The formula for GBM is 
+%% 
+% $S(T + deltaT) = S(T)*exp((mu-sigma^2/2)*deltaT
+% + sigma*epsilon*sqrt(deltaT))$ ;
+
+head(SPY);
+data = SPY(:,2);
+data = data{:,:};      %Converting table to array
+logPrices = log(data);
+
+% Calculate SPY returns
+returns = diff(logPrices);
+
+%% Calculating factors of GBM
+% Calculate the descriptive statistics
+
+% Compute mu
+mu = mean(returns);
+
+% compute sigma
+sigma = std(returns);
+
+% Assign deltaT = 1
+deltaT = 1;
+
+%% Calculate the future prices
+% Now create a vector of normally distributed numbers for epsilon.
+% Simulating 100 future paths of stock price for SPY.
+epsilon = randn(22,100);
+
+%% Create factors for GBM
+factors = exp((mu-sigma^2/2)*deltaT + sigma*epsilon*sqrt(deltaT));
+
+%%
+% To predict the future values of the stock price, first we need to extract 
+% the price of SPY on the last trading day and store the results.
+S0 = data(end,1);
+
+%%
+% Create a row vector of size 1 by 100 such that each element of the vector
+% has the value equal to the last recorded stock price S0. Note:If you
+% change epsilon to 200, you need to change this vector too.
+lastPriceVector = ones(1,100)*S0;
+
+%%
+% Now concatenate lastPriceVector and factors
+factors2 = [lastPriceVector;factors];
+
+%%
+% Functions like cumprod are applied to each column of the input matrix
+% Use the function cumprod with factors 2 as the input to compute the
+% prices at future time instants
+paths = cumprod(factors2);
+
+%% Plot the paths
+% Plot paths to see the predicted prices of SPY
+plot(paths)
+xlabel("Time")
+ylabel("Prices")
+title("Simulated Future Paths of SPY")
+
+%%
+% Combine stock price and predicted path together
+plot(data)
+xlabel("Time")
+ylabel("Stock Price")
+title("Stock Price over last 128 Days")
+hold on
+
+%%
+% The future prices should have x-data that represents the future time
+% points. Since the historical data contains 128 records, the future value
+% should be plotted against the index(x-data)
+plot(125:147,paths)
+xlabel("Time")
+ylabel("Stock Price")
+title("Historical Stock Prices & Simulated Prices")
+hold off
+
+%%
+% Zoom in the graph by changing the axis limit
+xlim([100 140])
+
+%%
+% Extract all rows and columns from paths
+finalPrices = paths(end,:);
+
+%%
+% Calculate possible returns
+possibleReturns = log(finalPrices) - log(S0);
+
+%%
+% Plot a histogram of the possible returns with 20 bins.
+histogram(possibleReturns,20)
+xlabel("Standard Deviation")
+ylabel("Possible Returns")
+title("Possible Returns Histogram")
+
+%%
+% Calculate the VaR
+var5 = prctile(possibleReturns,5)
+hold on
+plot([var5 var5],[0 20], 'r')
+title("Value at Risk at 5%")
+hold off
+
+%%
+% Apply it to your own dataset and extract insights.
+
+##### SOURCE END #####
+--></body></html>
